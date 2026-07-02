@@ -87,7 +87,7 @@ class Repairer:
             print(f"Removing broken credential definition {record.name}")
             try:
                 sent = await txn.fetch_all(
-                    "credential_def_sent",
+                    "cred_def_sent",
                     tag_filter={"cred_def_id": record.name},
                 )
                 await self._remove_if_exists(txn, "credential_def", record.name)
@@ -97,7 +97,7 @@ class Repairer:
                     )
                 await self._remove_if_exists(txn, "credential_def_key_proof", record.name)
                 for rec in sent:
-                    await self._remove_if_exists(txn, "credential_def_sent", rec.name)
+                    await self._remove_if_exists(txn, "cred_def_sent", rec.name)
             except Exception:
                 print(f"Failed removing credential definition {record.name}")
 
