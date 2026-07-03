@@ -37,10 +37,15 @@ class Repairer:
             await self.conn.close()
 
     async def _open_store(self, profile: str | None = None):
+        key_method = KEY_METHODS.get(self.wallet_key_derivation_method)
+        if not key_method:
+            raise ValueError(
+                f"Unsupported wallet key derivation method: {self.wallet_key_derivation_method}"
+            )
         return await Store.open(
             self.conn.uri,
             pass_key=self.wallet_key,
-            key_method=KEY_METHODS[self.wallet_key_derivation_method],
+            key_method=key_method,
             profile=profile,
         )
 
@@ -49,16 +54,11 @@ class Repairer:
         store = await self._open_store(profile)
         try:
             async with store.transaction() as txn:
-                await self._dump_entries(txn)
                 await self._repair_revocation_registries(txn)
                 await self._repair_credential_definitions(txn)
                 await txn.commit()
         finally:
             await store.close()
-
-    async def _dump_entries(self, txn):
-        for entry in await txn.fetch_all():
-            print(f"{entry.category} - {entry.name}")
 
     async def _repair_revocation_registries(self, txn):
         for record in await txn.fetch_all("revocation_reg_def"):
@@ -75,8 +75,8 @@ class Repairer:
                 await self._remove_if_exists(txn, "revocation_reg_info", record.name)
                 await self._remove_if_exists(txn, "revocation_reg", record.name)
                 await self._remove_if_exists(txn, "revocation_reg_def", record.name)
-            except Exception:
-                print(f"Failed removing revocation registry {record.name}")
+            except Exception as e:
+                print(f"Failed removing revocation registry {record.name}: {e}")
 
     async def _repair_credential_definitions(self, txn):
         for record in await txn.fetch_all("credential_def"):
@@ -98,11 +98,11 @@ class Repairer:
                 await self._remove_if_exists(txn, "credential_def_key_proof", record.name)
                 for rec in sent:
                     await self._remove_if_exists(txn, "cred_def_sent", rec.name)
-            except Exception:
-                print(f"Failed removing credential definition {record.name}")
+            except Exception as e:
+                print(f"Failed removing credential definition {record.name}: {e}")
 
     async def _remove_if_exists(self, txn, category: str, name: str):
         try:
             await txn.remove(category, name)
-        except Exception:
-            print(f"Unable to remove {category}/{name}")
+        except Exception as e:
+            print(f"Unable to remove {category}/{name}: {e}")
