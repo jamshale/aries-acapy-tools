@@ -29,6 +29,7 @@ class Exporter:
             wallet_key: The key for the wallet.
             wallet_key_derivation_method: The key derivation method for the wallet.
             export_filename: The name of the export file.
+
         """
         self.conn = conn
         self.wallet_name = wallet_name
@@ -61,22 +62,32 @@ class Exporter:
         print(f"Exporting wallet to {self.export_filename}...")
 
         tables = {"config": {}, "items": {}, "profiles": {}}
-        store = await Store.open(
+
+        admin_store = await Store.open(
             self.conn.uri,
             pass_key=self.wallet_key,
             key_method=KEY_METHODS.get(self.wallet_key_derivation_method),
         )
 
-        tables["items"] = await self._get_decoded_items_and_tags(store)
+        for profile in await admin_store.list_profiles():
+            store = await Store.open(
+                self.conn.uri,
+                pass_key=self.wallet_key,
+                key_method=KEY_METHODS.get(self.wallet_key_derivation_method),
+                profile=profile,
+            )
 
-        tables["config"] = await self.conn.get_root_config()
+            tables["items"] = await self._get_decoded_items_and_tags(store)
 
-        tables["profiles"] = await self.conn.get_profiles()
+            tables["config"] = await self.conn.get_root_config()
 
-        with open(self.export_filename, "w") as json_file:
-            json.dump(tables, json_file, indent=4)
+            tables["profiles"] = await self.conn.get_profiles()
 
-        await store.close()
+            with open(self.export_filename, "w") as json_file:
+                json.dump(tables, json_file, indent=4)
+
+            await store.close()
+        await admin_store.close()
         await self.conn.close()
 
     async def run(self):
