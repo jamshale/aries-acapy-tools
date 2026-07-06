@@ -68,7 +68,7 @@ class Repairer:
             try:
                 issuer = await txn.fetch_all(
                     "issuer_rev_reg",
-                    tag_filter={"revoc_reg_id": record.name},
+                    tag_filter={"revoc_reg_id": record.tags.get("revoc_reg_id")},
                 )
                 for rec in issuer:
                     await self._remove_if_exists(txn, "issuer_rev_reg", rec.name)
