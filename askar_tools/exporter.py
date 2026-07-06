@@ -77,16 +77,17 @@ class Exporter:
                 profile=profile,
             )
 
-        tables["items"] = await self._get_decoded_items_and_tags(store)
+            tables["items"] = await self._get_decoded_items_and_tags(store)
 
-        tables["config"] = await self.conn.get_root_config()
+            tables["config"] = await self.conn.get_root_config()
 
-        tables["profiles"] = await self.conn.get_profiles()
+            tables["profiles"] = await self.conn.get_profiles()
 
-        with open(self.export_filename, "w") as json_file:
-            json.dump(tables, json_file, indent=4)
+            with open(self.export_filename, "w") as json_file:
+                json.dump(tables, json_file, indent=4)
 
-        await store.close()
+            await store.close()
+        await admin_store.close()
         await self.conn.close()
 
     async def run(self):
