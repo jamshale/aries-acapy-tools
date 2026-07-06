@@ -61,8 +61,10 @@ class Repairer:
             await store.close()
 
     async def _repair_revocation_registries(self, txn):
-        for record in await txn.fetch_all("revocation_reg_def"):
-            if await txn.fetch("revocation_reg_def_private", name=record.name):
+        for record in await txn.fetch_all("issuer_rev_reg"):
+            if await txn.fetch(
+                "revocation_reg_def_private", name=record.tags.get("revoc_reg_id")
+            ):
                 continue
             print(f"Removing broken revocation registry {record.name}")
             try:
